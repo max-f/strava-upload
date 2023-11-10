@@ -1,20 +1,14 @@
 import os
-import pickle
 from typing import Annotated
 
 import typer
 from loguru import logger as log
 from stravalib.client import Client
 
+from .utils import load_object, TOKEN_FILE
+
 app = typer.Typer()
 client: Client
-TOKEN_FILE = "client.pkl"
-
-
-def load_object(filename):
-    with open(filename, 'rb') as file:
-        loaded_object = pickle.load(file)
-        return loaded_object
 
 
 @app.command()
@@ -51,7 +45,6 @@ def upload_file(file: str):
     with open(file, "rb") as payload:
         uploader_response = client.upload_activity(payload, name=activity_title, data_type="fit")
         uploader_response.wait()
-
 
 
 try:

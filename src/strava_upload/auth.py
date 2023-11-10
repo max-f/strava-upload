@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import pickle
 import signal
 import time
 from datetime import datetime
@@ -12,6 +11,8 @@ from fastapi.responses import RedirectResponse
 from loguru import logger as log
 from stravalib.client import Client
 
+from .utils import save_object, load_object, TOKEN_FILE
+
 load_dotenv()
 AUTH_URL = os.getenv("STRAVA_AUTH_URL", "https://www.strava.com/oauth/token")
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -19,21 +20,8 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 API_BASE_URL = os.getenv("STRAVA_API_BASE_URL", "https://www.strava.com/api/v3")
 REDIRECT_URL = os.getenv("REDIRECT_URL", "http://localhost:8000/authorized")
 
-TOKEN_FILE = "client.pkl"
-
 app = FastAPI()
 client = Client()
-
-
-def save_object(obj, filename):
-    with open(filename, 'wb') as output:  # Overwrites any existing file.
-        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
-
-
-def load_object(filename):
-    with open(filename, 'rb') as file:
-        loaded_object = pickle.load(file)
-        return loaded_object
 
 
 def check_token():
