@@ -1,6 +1,6 @@
 import pickle
 
-TOKEN_FILE = "client.pkl"
+TOKEN_FILE = "/tmp/client.pkl"
 
 
 def save_object(obj, filename):

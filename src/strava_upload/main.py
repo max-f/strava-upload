@@ -4,8 +4,9 @@ from typing import Annotated
 import typer
 from loguru import logger as log
 from stravalib.client import Client
+from stravalib.exc import ActivityUploadFailed
 
-from .utils import load_object, TOKEN_FILE
+from . import utils
 
 app = typer.Typer()
 client: Client
@@ -13,19 +14,18 @@ client: Client
 
 @app.command()
 def upload(number: Annotated[int, typer.Option(help="Number of files to upload")] = 1):
-    typer.echo("Uploading files to strava..")
-    typer.echo("Checking if Garmin head unit is mounted..")
+    log.info("Uploading files to strava..")
+    log.info("Checking if Garmin head unit is mounted..")
 
     user: str = os.getlogin()
     try:
-        # os.chdir(f"/run/media/{user}/GARMIN/Garmin/Activities/")
-        os.chdir(f"/home/{user}/var/music")
+        os.chdir(f"/run/media/{user}/GARMIN/Garmin/Activities/")
+        # os.chdir(f"/home/{user}/var/music")
 
     except FileNotFoundError:
-        typer.echo("\n")
-        typer.echo("Garmin head unit not mounted.")
-        typer.echo("Exiting..")
-        return
+        log.error("Garmin head unit not mounted.")
+        log.error("Exiting..")
+        raise SystemExit(1)
 
     file_names: list[str] = os.listdir()
     file_names.sort(reverse=True)
@@ -37,18 +37,26 @@ def upload(number: Annotated[int, typer.Option(help="Number of files to upload")
 
 def upload_file(file: str):
     try:
-        really_upload = typer.confirm(f"Do you want to upload {file}?", abort=True)
+        typer.confirm(f"Do you want to upload {file}?", abort=True)
     except typer.Abort:
-        typer.echo("Aborting..")
+        log.info(f"Skipping upload of file {file}")
         return
     activity_title = typer.prompt("Enter a title for the activity", default="")
     with open(file, "rb") as payload:
-        uploader_response = client.upload_activity(payload, name=activity_title, data_type="fit")
-        uploader_response.wait()
+        try:
+            uploader_response = client.upload_activity(payload, name=activity_title, data_type="fit")
+            uploader_response.wait()
+        except ActivityUploadFailed as e:
+            if e.args and 'access_token' in e.args[0] and 'invalid' in e.args[0]:
+                log.error("Access token invalid, please run `rye run auth` again")
+                raise SystemExit(1)
+            else:
+                log.error(e)
+                raise SystemExit(1)
 
 
 try:
-    client = load_object(TOKEN_FILE)
+    client = utils.load_object(utils.TOKEN_FILE)
     log.info(f"Got client {client.access_token}")
 except FileNotFoundError:
     log.error("No token file found. Please run `rye run auth` first.")

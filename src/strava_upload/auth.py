@@ -11,7 +11,7 @@ from fastapi.responses import RedirectResponse
 from loguru import logger as log
 from stravalib.client import Client
 
-from .utils import save_object, load_object, TOKEN_FILE
+from . import utils
 
 load_dotenv()
 AUTH_URL = os.getenv("STRAVA_AUTH_URL", "https://www.strava.com/oauth/token")
@@ -52,12 +52,12 @@ def get_access_code(state=None, code=None, scope=None):
     client.access_token = access_token
     client.refresh_token = refresh_token
     client.token_expires_at = expires_at
-    save_object(client, TOKEN_FILE)
+    utils.save_object(client, utils.TOKEN_FILE)
     return {"state": state, "code": code, "scope": scope}
 
 
 try:
-    client = load_object(TOKEN_FILE)
+    client = utils.load_object(utils.TOKEN_FILE)
     check_token()
     athlete = client.get_athlete()
     log.info(f"For athlete {athlete.id}, I now have an access token {client.access_token}")
